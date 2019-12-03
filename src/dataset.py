@@ -22,6 +22,8 @@ class Dataset(torch.utils.data.Dataset):
         self.data_size = data_size
         self.files = random.sample(files, self.data_size)
         self.label_source = label_source
+        self.max_width = 300
+        self.max_height = 300
 
     def __len__(self):
         return self.data_size
@@ -29,6 +31,7 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         image_address = self.files[idx]
         image = Image.open(image_address)
+        self.resize_image(image)
         pad = transforms.Pad(50, padding_mode='constant')
         image = pad(image)
         image = np.array(image)
@@ -43,6 +46,15 @@ class Dataset(torch.utils.data.Dataset):
         # image = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(image)
         label = image_address[9:12]
         return image, label
+
+    def resize_image(self, image):
+        width, height = image.size
+        padding_width = max(0, self.max_width - width)
+        padding_height = max(0, self.max_height - height)
+        pad = transforms.Pad((0, 0, padding_width, padding_height), padding_mode='constant')
+        if(width > self.max_width and height > self.max_height):
+
+
 
 def mostrarImagen(image, label):
     #imagen, etiqueta = dataset[nroImagen]
