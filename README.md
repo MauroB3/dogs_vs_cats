@@ -1,1 +1,2 @@
-# dogs_vs_cats
+# Kaggle challenge
+## dogs vs cats
