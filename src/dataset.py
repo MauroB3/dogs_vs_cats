@@ -31,9 +31,10 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         image_address = self.files[idx]
         image = Image.open(image_address)
-        self.resize_image(image)
-        pad = transforms.Pad(50, padding_mode='constant')
-        image = pad(image)
+
+        # Se llama a la funcion resize que le cambia el tamaño y/o agrega paddin para obtener una imagen
+        # del tamaño deseado
+        image = self.resize_image(image)
         image = np.array(image)
         # Se deja los valores de la imágen en el rango 0-1
         image = image / 255
@@ -49,10 +50,34 @@ class Dataset(torch.utils.data.Dataset):
 
     def resize_image(self, image):
         width, height = image.size
+
+        # Resize
+        # Si el ancho/alto se excede del limite me quedo el valor de que tan excedido esta, sino es 0
+        diff_width = max(0, width - self.max_width)
+        diff_height = max(0, height - self.max_height)
+
+        # Se obtiene el porcentaje de que tan excedida en tamaño esta la imagen, para despues poder achicarla
+        # y mantener la relacion de aspecto.
+        perc_to_resize = (diff_width / width if diff_width > diff_height else diff_height / height) * 1
+
+        # Le resto el mismo porcentaje al alto y al ancho para mantener la relacion de aspecto.
+        # Resize toma int como parametros por lo que lo casteamos (redondea hacia abajo)
+        new_width = int(width * (1 - perc_to_resize))
+        new_height = int(height * (1 - perc_to_resize))
+
+        size = new_height, new_width
+        resize = transforms.Resize(size=size)
+        image = resize(image)
+
+        # Padding
+        # Se obtiene el alto y el ancho despues de haber hecho resize
+        width, height = image.size
+        # Si no es necesario agregar padding el valor es 0, y la imagen queda igual
         padding_width = max(0, self.max_width - width)
         padding_height = max(0, self.max_height - height)
+
         pad = transforms.Pad((0, 0, padding_width, padding_height), padding_mode='constant')
-        if(width > self.max_width and height > self.max_height):
+        return pad(image)
 
 
 
@@ -66,6 +91,7 @@ def mostrarImagen(image, label):
     # Recupero la etiqueta de la imágen usando el encoder
     plt.title(label)
     plt.show()
+
 
 dataset = Dataset(data_dir='../train/', data_size=25000, label_source=2)
 
