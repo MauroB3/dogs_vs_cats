@@ -22,8 +22,8 @@ class Dataset(torch.utils.data.Dataset):
         self.data_size = data_size
         self.files = random.sample(files, self.data_size)
         self.label_source = label_source
-        self.max_width = 300
-        self.max_height = 300
+        self.max_width = 150
+        self.max_height = 150
 
     def __len__(self):
         return self.data_size
@@ -51,7 +51,7 @@ class Dataset(torch.utils.data.Dataset):
     def resize_image(self, image):
         width, height = image.size
 
-        # Resize
+        # # Resize
         # Si el ancho/alto se excede del limite me quedo el valor de que tan excedido esta, sino es 0
         diff_width = max(0, width - self.max_width)
         diff_height = max(0, height - self.max_height)
@@ -69,7 +69,7 @@ class Dataset(torch.utils.data.Dataset):
         resize = transforms.Resize(size=size)
         image = resize(image)
 
-        # Padding
+        # # Padding
         # Se obtiene el alto y el ancho despues de haber hecho resize
         width, height = image.size
         # Si no es necesario agregar padding el valor es 0, y la imagen queda igual
