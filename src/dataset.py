@@ -40,11 +40,14 @@ class Dataset(torch.utils.data.Dataset):
         # Se traspone la imagen para que el canal sea la primer coordenada
         # (la red espera NxMx3)
         image = image.transpose(2, 0, 1)
+        image = torch.Tensor(image)
         # Se puede agregar: Aplicar normalización (Hacer que los valores vayan
         # entre -1 y 1 pero con el 0 en el valor promedio.
         # Los parámetros estos están precalculados para el set CIFAR-10
         # image = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(image)
         label = image_address[9:12]
+        label = 0 if image_address[9:12] == "cat" else 1
+        label = torch.tensor(label).long()
         return image, label
 
     def resize_image(self, image):
@@ -57,7 +60,7 @@ class Dataset(torch.utils.data.Dataset):
 
         # Se obtiene el porcentaje de que tan excedida en tamaño esta la imagen, para despues poder achicarla
         # y mantener la relacion de aspecto.
-        perc_to_resize = (diff_width / width if diff_width > diff_height else diff_height / height)
+        perc_to_resize = (diff_width / width) if diff_width > diff_height else (diff_height / height)
 
         # Le resto el mismo porcentaje al alto y al ancho para mantener la relacion de aspecto.
         # Resize toma int como parametros por lo que lo casteamos (redondea hacia abajo)
@@ -76,7 +79,6 @@ class Dataset(torch.utils.data.Dataset):
         padding_height = max(0, self.max_height - height)
 
         pad = transforms.Pad((0, 0, padding_width, padding_height), padding_mode='constant')
-
         return pad(image)
 
 

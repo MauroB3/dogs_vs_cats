@@ -20,8 +20,8 @@ dir_imagenes = '../train/'
 # Se puede poner un número arbitrario para pruebas
 cant_archivos = 0
 
-max_width = 80
-max_height = 80
+max_width = 32
+max_height = 32
 
 from dataset import Dataset, mostrarImagen
 
@@ -49,7 +49,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, s
 
 from network import Network
 
-model = Network(dataset, max_width, max_height)
+model = Network()
 
 input('Listo para entrenar')
 
