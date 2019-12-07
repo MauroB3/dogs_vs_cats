@@ -14,80 +14,20 @@ from torch.utils.data.sampler import SubsetRandomSampler
 # dir_imagenes: Directorio donde están las imágenes extraídas del 7zip de Kaggle
 # (Las que valen son las de TRAIN, que son aquellas que tienen las etiquetas en
 # el archivo trainLabels.csv)
-dir_imagenes = 'train/'
+dir_imagenes = '../train/'
 # cant_archivos: Cuantos archivos del repositorio usar.
 # El valor 0 significa usar todos.
 # Se puede poner un número arbitrario para pruebas
 cant_archivos = 0
-# ruta_trainlabels: Ruta del archivo trainLabels.csv (relativa a donde está este .py)
-ruta_trainlabels = 'trainLabels.csv'
 
+max_width = 80
+max_height = 80
 
-# Constructor para el Dataset basado en las imágenes
-class Cifar10Dataset(torch.utils.data.Dataset):
-    # data_dir: El directorio del que se leerán las imágenes
-    # label_source: De dónde se obtendrán las etiquetas
-    # data_size: Cuantos archivos usar (0 = todos)
-    def __init__(self, data_dir, label_source, data_size=0):
-        files = os.listdir(data_dir)
-        files = [os.path.join(data_dir, x) for x in files]
-        if data_size < 0 or data_size > len(files):
-            assert "Data size should be between 0 to number of files in the dataset"
-        if data_size == 0:
-            data_size = len(files)
-        self.data_size = data_size
-        self.files = random.sample(files, self.data_size)
-        self.label_source = label_source
+from dataset import Dataset, mostrarImagen
 
-    def __len__(self):
-        return self.data_size
-
-    def __getitem__(self, idx):
-        image_address = self.files[idx]
-        image = np.array(Image.open(image_address))
-        # Se deja los valores de la imágen en el rango 0-1
-        image = image / 255
-        # Se traspone la imagen para que el canal sea la primer coordenada
-        # (la red espera NxMx3)
-        image = image.transpose(2, 0, 1)
-        image = torch.Tensor(image)
-        # Se puede agregar: Aplicar normalización (Hacer que los valores vayan
-        # entre -1 y 1 pero con el 0 en el valor promedio.
-        # Los parámetros estos están precalculados para el set CIFAR-10
-        # image = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(image)
-        label_idx = int(image_address[:-4].split("/")[1]) - 1
-        label = self.label_source[label_idx]
-        label = torch.tensor(label).long()
-        return image, label
-
-
-# Levantamos los labels del archivo csv
-labels = pd.read_csv(ruta_trainlabels)
-# Lo transformamos a números con un labelEncoder
-# labels_encoder es importante: Es el que me va a permitir revertir la
-# transformación para conocer el nombre de una etiqueta numérica
-labels_encoder = LabelEncoder()
-labels_numeros = labels_encoder.fit_transform(labels['label'])
 
 # Generamos el DataSet con nuestros datos de entrenamiento
-cifar_dataset = Cifar10Dataset(data_dir=dir_imagenes, data_size=cant_archivos, label_source=labels_numeros)
-
-
-##Antes de pasar a la separación en datos de training y test, podemos verificar
-##que estamos levantando las imágenes de manera correcta. Defino una función que
-##dado un número toma la imágen en esa posición del dataset (Ojo, recordar que
-##está mezclado), y grafica la imágen junto con su etiqueta.
-def mostrarImagen(dataset, nroImagen, encoder):
-    imagen, etiqueta = dataset[nroImagen]
-    # Se regresa la imágen a formato numpy
-    # Es necesario trasponer la imágen para que funcione con imshow
-    # (imshow espera 3xNxM)
-    imagen = imagen.numpy()
-    imagen = imagen.transpose(1, 2, 0)
-    plt.imshow(imagen)
-    # Recupero la etiqueta de la imágen usando el encoder
-    plt.title(labels_encoder.inverse_transform([etiqueta])[0])
-
+dataset = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_height, data_size=cant_archivos)
 
 # ej: mostrarImagen(cifar_dataset, 10, labels_encoder)
 
@@ -99,50 +39,17 @@ batch_size = 84
 
 # Proporción de archivos a usar para test
 test_proportion = .2
-train_size = int((1 - test_proportion) * len(cifar_dataset))
-test_size = len(cifar_dataset) - train_size
+train_size = int((1 - test_proportion) * len(dataset))
+test_size = len(dataset) - train_size
 
 # Creo los Datasets y los loaders que voy a utilizar para el aprendizaje
-train_dataset, test_dataset = torch.utils.data.random_split(cifar_dataset, [train_size, test_size])
+train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
+from network import Network
 
-# Creo la red (Es la misma que usamos en clase)
-class CifarNet(nn.Module):
-    def __init__(self):
-        super(CifarNet, self).__init__()
-        # Capa convolución 1: Toma imágenes con 3 canales y un kernel de
-        # 5x5 para generar imágenes de 32 canales
-        # Entrada: 32x32; Salida: 28x28 (Se pierden 2 pixeles de cada borde)
-        self.conv1 = nn.Conv2d(3, 32, 5)
-        # Capa MaxPool. Se deja un elemento de cada kernel de 2x2
-        # Entrada: 28x28; Salida: 14x14
-        self.pool = nn.MaxPool2d(2, 2)
-        # Capa convolución 2: Toma imágenes de 32 canales y un kernel de
-        # 5x5 para generar imágenes de 16 canales.
-        # Entrada: 14x14; Salida: 10x10
-        self.conv2 = nn.Conv2d(32, 16, 5)
-        # Luego de conv2 se hace otro MaxPool, así que
-        # Entrada: 10x10; Salida: 5x5
-        # Finalmente llegamos a la red lineal, como teníamos 16 canales
-        # y una imágen de 5x5, la cantidad de entradas de la capa es
-        # 16x5x5.
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 5)
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-
-model = CifarNet()
+model = Network(dataset, max_width, max_height)
 
 input('Listo para entrenar')
 
