@@ -1,5 +1,7 @@
 import os
 import random
+import time
+
 import pandas as pd
 import PIL.Image as Image
 import numpy as np
@@ -23,6 +25,8 @@ cant_archivos = 0
 max_width = 32
 max_height = 32
 
+from config import device
+
 from dataset import Dataset, mostrarImagen
 
 
@@ -35,7 +39,7 @@ dataset = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_hei
 # batch_size = Cuántos archivos entran por batch de entrenamiento
 # (Nota: En una epoch todos los archivos terminan pasando, pero la
 #       corrección de los pesos y parámetros se hace cada batch)
-batch_size = 84
+batch_size = 24
 
 # Proporción de archivos a usar para test
 test_proportion = .2
@@ -91,12 +95,12 @@ def test(model, data_loader):
             out = model(data)
 
             # Calculamos el loss
-            test_loss += loss_criteria(out, target).item()
+            test_loss += loss_criteria(out, target).to(device()).item()
 
             # Calculamos la accuracy (exactitud) (Sumando el resultado como
             # correcto si la predicción acertó)
             _, predicted = torch.max(out.data, 1)
-            correct += torch.sum(target == predicted).item()
+            correct += torch.sum(target == predicted).to(device()).item()
 
     # Devolvemos la exactitud y loss promedio
     avg_accuracy = correct / len(data_loader.dataset)
@@ -106,7 +110,7 @@ def test(model, data_loader):
 
 # Definimos nuestro criterio de loss
 # Aquí usamos CrossEntropyLoss, que está poensado para clasificación
-loss_criteria = nn.CrossEntropyLoss()
+loss_criteria = nn.CrossEntropyLoss().to(device())
 
 # Definimos nuestro optimizer
 # Aquí usamos Stochastic Gradient Descent (SGD) - Descenso por Gradiente Estocástico
@@ -114,16 +118,15 @@ learning_rate = 0.01
 learning_momentum = 0.9
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=learning_momentum)
 
-# En estas listas vacías nos vamos guardando el loss para los datos de training
-# y validación en cada iteración.
 epoch_nums = []
 training_loss = []
 validation_loss = []
 
-# Entrenamiento. Por default lo hacemos por 100 iteraciones (epochs)
-epochs = 100
+epochs = 50
+print("comenzando entrenamiento")
 for epoch in range(1, epochs + 1):
 
+    start = time.time()
     # Hacemos el train con los datos que salen del loader
     train_loss = train(model, train_loader, optimizer)
 
@@ -134,13 +137,12 @@ for epoch in range(1, epochs + 1):
     epoch_nums.append(epoch)
     training_loss.append(train_loss)
     validation_loss.append(test_loss)
-
+    end = time.time() - start
     # Cada 10 iteraciones vamos imprimiendo nuestros resultados parciales
-    if (epoch) % 10 == 0:
-        print('Epoch {:d}: loss entrenamiento= {:.4f}, loss validacion= {:.4f}, exactitud={:.4%}'.format(epoch,
+    print('Epoch {:d}: loss entrenamiento= {:.4f}, loss validacion= {:.4f}, exactitud={:.4%}, tiempo requerido={:.4f}'.format(epoch,
                                                                                                          train_loss,
                                                                                                          test_loss,
-                                                                                                         accuracy))
+                                                                                                         accuracy, end))
 
 # Creamos la matriz de confusión, esta es parte del paquete scikit
 from sklearn.metrics import confusion_matrix
@@ -158,8 +160,8 @@ for batch, tensor in enumerate(test_loader):
     entradas.append(valor)
     salidas.append(salida)
 # Se pasan a formato Tensor
-entradas = torch.cat(entradas)
-salidas = torch.cat(salidas)
+entradas = torch.cat(entradas).to(device())
+salidas = torch.cat(salidas).to(device())
 # Se obtienen las predicciones
 _, predicted = torch.max(model(entradas), 1)
 
