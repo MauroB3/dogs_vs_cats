@@ -20,8 +20,8 @@ dir_imagenes = '../train/'
 # Se puede poner un número arbitrario para pruebas
 cant_archivos = 0
 
-max_width = 32
-max_height = 32
+max_width = 224
+max_height = 224
 
 from dataset import Dataset, mostrarImagen
 
@@ -35,7 +35,7 @@ dataset = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_hei
 # batch_size = Cuántos archivos entran por batch de entrenamiento
 # (Nota: En una epoch todos los archivos terminan pasando, pero la
 #       corrección de los pesos y parámetros se hace cada batch)
-batch_size = 84
+batch_size = 8
 
 # Proporción de archivos a usar para test
 test_proportion = .2
@@ -124,20 +124,23 @@ validation_loss = []
 epochs = 100
 for epoch in range(1, epochs + 1):
 
+    print("Empiezo a entrenar")
     # Hacemos el train con los datos que salen del loader
     train_loss = train(model, train_loader, optimizer)
 
+    print("Empiezo a testear")
     # Probamos el nuevo entrenamiento sobre los datos de test
     test_loss, accuracy = test(model, test_loader)
 
+    print("Termine de entrenar y testear")
     # Guardamos en nuestras listas los datos de loss obtenidos
     epoch_nums.append(epoch)
     training_loss.append(train_loss)
     validation_loss.append(test_loss)
 
     # Cada 10 iteraciones vamos imprimiendo nuestros resultados parciales
-    if (epoch) % 10 == 0:
-        print('Epoch {:d}: loss entrenamiento= {:.4f}, loss validacion= {:.4f}, exactitud={:.4%}'.format(epoch,
+    #if (epoch) % 10 == 0:
+    print('Epoch {:d}: loss entrenamiento= {:.4f}, loss validacion= {:.4f}, exactitud={:.4%}'.format(epoch,
                                                                                                          train_loss,
                                                                                                          test_loss,
                                                                                                          accuracy))
