@@ -28,4 +28,3 @@ class Network(nn.Module):
         x = torch.relu(self.fc2(x)).to(device)
         x = self.fc3(x)
         return x
-

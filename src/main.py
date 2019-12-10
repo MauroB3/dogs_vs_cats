@@ -143,6 +143,26 @@ for epoch in range(1, epochs + 1):
                                                                                                          accuracy, end))
 
 
+import math
+
+dir_imagenes = '../eval_data/'
+data_ds = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_height, data_size=cant_archivos)
+data_ld = torch.utils.data.DataLoader(data_ds, batch_size=batch_size, shuffle=False, num_workers=0)
 
 
+def evaluate_data(model, data_loader):
+    model.eval()
+    result = []
 
+    with torch.no_grad():
+        for batch, tensor in enumerate(data_loader):
+            data, target = tensor
+            out = model(data)
+            batch_results = torch.softmax(out, dim=1)[:, 1].tolist()
+            result += batch_results
+    return {k: math.ceil(v) for k, v in enumerate(result)}
+
+result = evaluate_data(model, data_ld)
+
+result_pd = pd.DataFrame({'id': list(result.keys()), 'label': list(result.values())})
+result_pd.to_csv('result.csv', index=False)
