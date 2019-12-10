@@ -30,11 +30,8 @@ class Network(nn.Module):
         x = torch.softmax(x, dim=1)
         return x
 
-<<<<<<< HEAD
     def save(self, path):
         torch.save(self.state_dict(), path)
 
     def load(self, path):
         self.load_state_dict(torch.load(path))
-=======
->>>>>>> 93a5573fd8e31cd8c475d7e68f6a7e8c5549894e
