@@ -150,7 +150,7 @@ epoch_nums = []
 training_loss = []
 validation_loss = []
 
-epochs = 5
+epochs = 10
 print("comenzando entrenamiento")
 for epoch in range(1, epochs + 1):
 
