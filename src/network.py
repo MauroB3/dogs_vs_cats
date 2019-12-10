@@ -25,15 +25,17 @@ class Network(nn.Module):
         #Finalmente llegamos a la red lineal, como teníamos 16 canales
         #y una imágen de 5x5, la cantidad de entradas de la capa es
         #16x5x5.
-        self.fc1 = nn.Linear(16 * 5 * 5, 120).to(device)
-        self.fc2 = nn.Linear(120, 84).to(device)
-        self.fc3 = nn.Linear(84, 10).to(device)
+        self.fc1 = nn.Linear(16 * 5 * 5, 240).to(device)
+        self.fc2 = nn.Linear(240, 84).to(device)
+        # self.fc2 = nn.Dropout(0.1)
+        self.fc3 = nn.Linear(84, 2).to(device)
 
     def forward(self, x):
-        x = self.pool(torch.relu(self.conv1(x)).to(device))
-        x = self.pool(torch.relu(self.conv2(x)).to(device))
-        x = x.view(-1, 16 * 5 * 5)
-        x = torch.relu(self.fc1(x)).to(device)
-        x = torch.relu(self.fc2(x)).to(device)
-        x = self.fc3(x)
-        return x
+        out = self.pool(torch.relu(self.conv1(x)).to(device))
+        out = self.pool(torch.relu(self.conv2(out)).to(device))
+        out = out.view(-1, 16 * 5 * 5)
+        out = torch.relu(self.fc1(out)).to(device)
+        out = torch.relu(self.fc2(out)).to(device)
+        out = self.fc3(out)
+        return out
+
