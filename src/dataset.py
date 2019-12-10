@@ -1,5 +1,3 @@
-# pad = transforms.Pad(50, padding_mode='reflect / constant')
-
 import os
 import random
 import PIL.Image as Image
@@ -80,7 +78,8 @@ class Dataset(torch.utils.data.Dataset):
         padding_height = max(0, self.max_height - height)
 
         pad = transforms.Pad((0, 0, padding_width, padding_height), padding_mode='constant')
-        return pad(image)
+        image = pad(image)
+        return image
 
 
 

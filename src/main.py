@@ -24,8 +24,8 @@ dir_imagenes = '../train/'
 # Se puede poner un número arbitrario para pruebas
 cant_archivos = 0
 
-max_width = 32
-max_height = 32
+max_width = 200
+max_height = 200
 
 from config import device
 
@@ -35,13 +35,10 @@ from dataset import Dataset, mostrarImagen
 # Generamos el DataSet con nuestros datos de entrenamiento
 dataset = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_height, data_size=cant_archivos)
 
-# ej: mostrarImagen(cifar_dataset, 10, labels_encoder)
-
-
 # batch_size = Cuántos archivos entran por batch de entrenamiento
 # (Nota: En una epoch todos los archivos terminan pasando, pero la
 #       corrección de los pesos y parámetros se hace cada batch)
-batch_size = 24
+batch_size = 8
 
 # Proporción de archivos a usar para test
 test_proportion = .2
@@ -153,11 +150,12 @@ epoch_nums = []
 training_loss = []
 validation_loss = []
 
-epochs = 50
+epochs = 5
 print("comenzando entrenamiento")
 for epoch in range(1, epochs + 1):
 
     start = time.time()
+
     # Hacemos el train con los datos que salen del loader
     train_loss = train(model, train_loader, optimizer)
 
@@ -169,41 +167,33 @@ for epoch in range(1, epochs + 1):
     training_loss.append(train_loss)
     validation_loss.append(test_loss)
     end = time.time() - start
-    # Cada 10 iteraciones vamos imprimiendo nuestros resultados parciales
+
     print('Epoch {:d}: loss entrenamiento= {:.4f}, loss validacion= {:.4f}, exactitud={:.4%}, tiempo requerido={:.4f}'.format(epoch,
                                                                                                          train_loss,
                                                                                                          test_loss,
                                                                                                          accuracy, end))
 
-# Creamos la matriz de confusión, esta es parte del paquete scikit
-from sklearn.metrics import confusion_matrix
 
-# Ponemos el modelo en modo evaluación
-model.eval()
+import math
 
-# Hacemos las predicciones para los datos de test
-# Para eso, en primer lugar generamos la matriz de entradas y vector de
-# resultados a partir del dataloader
-entradas = list()
-salidas = list()
-for batch, tensor in enumerate(test_loader):
-    valor, salida = tensor
-    entradas.append(valor)
-    salidas.append(salida)
-# Se pasan a formato Tensor
-entradas = torch.cat(entradas).to(device())
-salidas = torch.cat(salidas).to(device())
-# Se obtienen las predicciones
-_, predicted = torch.max(model(entradas), 1)
+dir_imagenes = '../eval_data/'
+data_ds = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_height, data_size=cant_archivos)
+data_ld = torch.utils.data.DataLoader(data_ds, batch_size=batch_size, shuffle=False, num_workers=0)
 
-# Graficamos la matriz de confusión
-cm = confusion_matrix(salidas.numpy(), predicted.numpy())
-plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-plt.colorbar()
-tick_marks = np.arange(10)
-plt.xticks(tick_marks, labels_encoder.inverse_transform(range(10)), rotation=45)
-plt.yticks(tick_marks, labels_encoder.inverse_transform(range(10)))
-plt.xlabel("El modelo predijo que era")
-plt.ylabel("La imágen real era")
-plt.show()
 
+def evaluate_data(model, data_loader):
+    model.eval()
+    result = []
+
+    with torch.no_grad():
+        for batch, tensor in enumerate(data_loader):
+            data, target = tensor
+            out = model(data)
+            batch_results = torch.softmax(out, dim=1)[:, 1].tolist()
+            result += batch_results
+    return {k: math.ceil(v) for k, v in enumerate(result)}
+
+result = evaluate_data(model, data_ld)
+
+result_pd = pd.DataFrame({'id': list(result.keys()), 'label': list(result.values())})
+result_pd.to_csv('result.csv', index=False)
