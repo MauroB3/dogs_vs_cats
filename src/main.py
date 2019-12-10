@@ -141,14 +141,14 @@ for epoch in range(1, epochs + 1):
                                                                                                          train_loss,
                                                                                                          test_loss,
                                                                                                          accuracy, end))
-
+model_path = "./model.txt"
+model.save(model_path)
 
 import math
 
 dir_imagenes = '../eval_data/'
 data_ds = Dataset(data_dir=dir_imagenes, max_width=max_width, max_height=max_height, data_size=cant_archivos)
 data_ld = torch.utils.data.DataLoader(data_ds, batch_size=batch_size, shuffle=False, num_workers=0)
-
 
 def evaluate_data(model, data_loader):
     model.eval()

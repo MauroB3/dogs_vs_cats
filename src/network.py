@@ -27,4 +27,11 @@ class Network(nn.Module):
         x = torch.relu(self.fc1(x)).to(device)
         x = torch.relu(self.fc2(x)).to(device)
         x = self.fc3(x)
+        x = torch.softmax(x, dim=1)
         return x
+
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
