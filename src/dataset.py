@@ -1,5 +1,3 @@
-# pad = transforms.Pad(50, padding_mode='reflect / constant')
-
 import os
 import random
 import PIL.Image as Image
@@ -7,6 +5,7 @@ import numpy as np
 import torch.utils.data.dataset
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
+from config import device
 
 class Dataset(torch.utils.data.Dataset):
     # data_dir: El directorio del que se leerán las imágenes
@@ -40,14 +39,14 @@ class Dataset(torch.utils.data.Dataset):
         # Se traspone la imagen para que el canal sea la primer coordenada
         # (la red espera NxMx3)
         image = image.transpose(2, 0, 1)
-        image = torch.Tensor(image)
+        image = torch.Tensor(image).to(device())
         # Se puede agregar: Aplicar normalización (Hacer que los valores vayan
         # entre -1 y 1 pero con el 0 en el valor promedio.
         # Los parámetros estos están precalculados para el set CIFAR-10
         # image = transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))(image)
         label = image_address[9:12]
         label = 0 if image_address[9:12] == "cat" else 1
-        label = torch.tensor(label).long()
+        label = torch.tensor(label).to(device()).long()
         return image, label
 
     def resize_image(self, image):
